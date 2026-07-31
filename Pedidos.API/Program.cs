@@ -7,6 +7,7 @@ using Pedidos.Infrastructure.Data;
 using Pedidos.Infrastructure.Repositories;
 using Pedidos.Infrastructure.Services;
 using Serilog;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,7 +21,7 @@ builder.Host.UseSerilog();
 // 2. Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(); // Swagger/OpenAPI
+builder.Services.AddOpenApi(); // OpenApi nativo de .NET 9
 
 // 3. Configurar DbContext (EF Core)
 builder.Services.AddDbContext<PedidosDbContext>(options =>
@@ -38,8 +39,8 @@ var app = builder.Build();
 // 5. Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
