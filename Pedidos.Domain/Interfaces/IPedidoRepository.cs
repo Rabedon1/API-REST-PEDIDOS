@@ -6,4 +6,7 @@ public interface IPedidoRepository
 {
     Task<PedidoCabecera> CrearPedidoAsync(PedidoCabecera pedido);
     Task RegistrarLogAsync(LogAuditoria log);
+    Task BeginTransactionAsync();
+    Task CommitTransactionAsync();
+    Task RollbackTransactionAsync();
 }

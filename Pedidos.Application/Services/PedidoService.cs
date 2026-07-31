@@ -2,7 +2,6 @@ using Pedidos.Application.DTOs;
 using Pedidos.Application.Interfaces;
 using Pedidos.Domain.Entities;
 using Pedidos.Domain.Interfaces;
-using Pedidos.Infrastructure.Data;
 
 namespace Pedidos.Application.Services;
 
@@ -10,13 +9,11 @@ public class PedidoService : IPedidoService
 {
     private readonly IPedidoRepository _pedidoRepository;
     private readonly IExternalValidationService _validationService;
-    private readonly PedidosDbContext _dbContext;
 
-    public PedidoService(IPedidoRepository pedidoRepository, IExternalValidationService validationService, PedidosDbContext dbContext)
+    public PedidoService(IPedidoRepository pedidoRepository, IExternalValidationService validationService)
     {
         _pedidoRepository = pedidoRepository;
         _validationService = validationService;
-        _dbContext = dbContext;
     }
 
     public async Task<PedidoResponseDto> RegistrarPedidoAsync(PedidoRequestDto request)
@@ -60,8 +57,8 @@ public class PedidoService : IPedidoService
             throw new InvalidOperationException("La validación externa del pedido falló.");
         }
 
-        // 4. Iniciar Transacción
-        using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        // 4. Iniciar Transacción abstracta
+        await _pedidoRepository.BeginTransactionAsync();
         try
         {
             // Guardar pedido
@@ -71,7 +68,7 @@ public class PedidoService : IPedidoService
             await RegistrarLogAsync(nuevoPedido, "Pedido Registrado", $"Pedido {nuevoPedido.Id} registrado exitosamente para el cliente {nuevoPedido.ClienteId}", "Info");
 
             // Confirmar transacción
-            await transaction.CommitAsync();
+            await _pedidoRepository.CommitTransactionAsync();
 
             return new PedidoResponseDto
             {
@@ -84,9 +81,9 @@ public class PedidoService : IPedidoService
         catch (Exception ex)
         {
             // Revertir transacción en caso de error
-            await transaction.RollbackAsync();
+            await _pedidoRepository.RollbackTransactionAsync();
 
-            // Intentamos loguear el error (en una nueva conexión)
+            // Intentamos loguear el error fuera de la transacción revertida
             await RegistrarLogAsync(nuevoPedido, "Error al Registrar", ex.Message, "Error");
             throw;
         }
